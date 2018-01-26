@@ -1,0 +1,77 @@
+Remember: there is probably not one right way to perform any of those tasks.
+Any method that you can justify and brings you intuition is good.
+Pay attention to the capability to explain your findings. It sometimes affects
+the modeling strategy too.
+
+## your data source ##
+
+the information you have to mainly use is from package
+HSAUR2 and / or HSAUR3 and the package you can access
+by typing in you R
+> install.packages("HSAUR3")
+> library(HSAUR3)
+## require(HSAUR3) does the same, but library is better practice, since it does not fail silently
+> data(Forbes2000)
+
+## the tasks, please try to do at minimum four first. If you can not do that take some of the 
+## tasks 4..10 to have four completed tasks in total
+
+## Note: you can get lots of support from e.g. the instructor, if it seems obvious that you 
+##       are trying to solve the problem.
+##
+## Note: you are more than welcome to form a community and share the information if you do it
+##       so that everybody can access your tips/tricks and insight.
+
+task1: investigate what the data is about?
+ - what do you think the data columns mean
+ - what kind of relations you can find
+
+This does not mean that you have to learn business but use 
+> data(Forbes2000) 
+to check in your R (or similar in python) what the columns stand for. If you use python you can get the 
+description from the HSAUR3.pdf that you can find from internet by googling HSAUR3 R package
+
+task2: create a simple model to "explain" variable "marketvalue" and assume that all lines are coming from same population
+tip: for example lm() can be used for simple model, then you put the marketvalue ~ other variables
+     on the left hand side of so called "formula" that is like mathematical formula and works 
+     as follows: "y ~ x + z" mean that y is explained by x and z variable in linear regression
+     case one attempts to fit a line y = a*x + b*z and tries to find the parameters a and b so
+     that the line appears to follow the data points. Please consult some literature for this
+     it is unclear. The point is not to use (only) linear regression model lm() for the job
+     but give an example hor those formula work. The other models in R tend to use the same
+     way to describe the model structure and that is why it is worth understanding.
+
+task3: find out is that true that all rows come from same population
+  - why do you claim so
+  - if they are not, what are the populations and why do you say so
+
+task4: find out the important variables to explain the MARKETVALUE
+  - what makes you think they are the right variables
+
+  It is ok to do this in visual way if modeling or other variable selection seems to be too difficult
+  to start with. Main point is that there is a good theory to say that this and this impacts the
+  market value. The style is free. Good visual is better than bad model and good model is even better.
+
+additional, non mandatory tasks:
+task5: find a way to automatically find out the important variable
+note: automatical does not require that you can automatically extract the
+      variables so that machine can process them futher. You can also do 
+      this 
+
+task6: find out another automatic way to find out important variables
+
+
+task7: find out the influencial samples (rows) of that that affect your model or explanation
+tip: if you use lm() then so called leverage is one way to do this. Please check from
+     some source how leverage is found out.
+
+
+task8: investigate some distribution of any of numeric variables, what can you learn
+
+
+task9: delete the contents of your R work-space (save it somehow before doing it)
+tip: the saving is only important if you have not done that and are relying on 
+     doing the analysis interactively in the R (that is not recommended)
+
+
+task10: repeat your analysis to see what was missing in yout programs of scripts

@@ -1,0 +1,8 @@
+library(HSAUR3)
+data(Forbes2000)
+summary(Forbes2000)
+plot(f$sales, f$marketvalue, log="xy")
+model <- lm(log(marketvalue) ~ log(sales))
+abline(model)
+hist(f$sales)
+hist(f$marketvalue)
