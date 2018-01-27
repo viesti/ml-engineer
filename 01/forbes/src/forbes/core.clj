@@ -82,11 +82,6 @@
             :mode "markers"
             :name "marketvalue"}])
 
-(def model (transduce (comp (map #(update % :marketvalue log))
-                            (map #(update % :sales log)))
-                      (kixi/simple-linear-regression :sales :marketvalue)
-                      data))
-
 (defn linear-model [x y data]
   (transduce identity
              (kixi/simple-linear-regression x y)
