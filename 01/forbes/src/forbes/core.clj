@@ -130,6 +130,27 @@ https://github.com/clojuredatascience/ch3-correlation/blob/master/src/cljds/ch3/
               :mode "lines+markers"
               :name "model"})])
 
+(defn make-residual [model]
+  (let [estimate (regression-line model)]
+    (fn [x y] (- y (estimate x)))))
+
+(defn r-squared
+  "kixi.stats version of https://github.com/clojuredatascience/ch3-correlation/blob/master/src/cljds/ch3/stats.clj#L75-L79"
+  [model x y data]
+  (let [residual (make-residual model)
+        r-var (transduce (map #(residual (x %) (y %))) kixi/variance data)
+        y-var (transduce (map y) kixi/variance data)]
+    (- 1 (/ r-var y-var))))
+
+(j/graph! "residuals"
+          (let [model (linear-model :sales :marketvalue data-log-scale)
+                residual (make-residual model)]
+            [{:y (map #(residual (:sales %) (:marketvalue %)) data-log-scale)
+              :x (map :sales data-log-scale)
+              :type "scatter"
+              :mode "markers"
+              :name "residuals"}]))
+
 (def sales-marketvalue-correlation-by-country
   (->> (for [country (->> data (map :country) set)]
          [country (transduce (filter #(-> % :country (= country)))
@@ -164,20 +185,20 @@ https://github.com/clojuredatascience/ch3-correlation/blob/master/src/cljds/ch3/
             :mode "markers"
             :name "marketvalue by sales"}])
 
-(for [[category correlation] (->> sales-marketvalue-correlation-by-category
-                                  (take 5))]
+(for [[category correlation] (take 5 sales-marketvalue-correlation-by-category)]
   (j/graph! (str category ": marketvalue by sales ")
             (let [pred #(= category (:category %1))
                   category-data (filter pred data-log-scale)
                   category-model (transduce identity
                                             (kixi/simple-linear-regression :sales :marketvalue)
                                             category-data)
-                  {:keys [min-x max-x min-y max-y]} (bounds :sales :marketvalue category-data)]
+                  {:keys [min-x max-x min-y max-y]} (bounds :sales :marketvalue category-data)
+                  r2 (r-squared category-model :sales :marketvalue category-data)]
               [{:y (map :marketvalue category-data)
                 :x (map :sales category-data)
                 :type "scatter"
                 :mode "markers"
-                :name (format "%s, %.02f" category correlation)}
+                :name (format "%s, cor: %.02f, R^2: %.02f" category correlation r2)}
                {:y [(y-at-x category-model min-x) (y-at-x category-model max-x)]
                 :x [min-x max-x]
                 :type "scatter"
@@ -215,23 +236,3 @@ https://github.com/clojuredatascience/ch3-correlation/blob/master/src/cljds/ch3/
               :type "scatter"
               :mode "lines+markers"
               :name "assets model"})])
-
-(defn make-residual [model]
-  (let [estimate (regression-line model)]
-    (fn [x y] (- y (estimate x)))))
-
-(j/graph! "residuals"
-          (let [residual (make-residual (linear-model :sales :marketvalue data-log-scale))]
-            [{:y (map #(residual (:sales %) (:marketvalue %)) data-log-scale)
-              :x (map :sales data-log-scale)
-              :type "scatter"
-              :mode "markers"
-              :name "residuals"}]))
-
-(defn r-squared
-  "kixi.stats version of https://github.com/clojuredatascience/ch3-correlation/blob/master/src/cljds/ch3/stats.clj#L75-L79"
-  [model x y data]
-  (let [residual (make-residual model)
-        r-var (transduce (map #(residual (x %) (y %))) kixi/variance data)
-        y-var (transduce (map y) kixi/variance data)]
-    (- 1 (/ r-var y-var))))
