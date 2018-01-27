@@ -14,21 +14,7 @@
 (m/set-current-implementation :vectorz)
 
 (defn parse-data
-  "Turns Forbes2000.csv file into a sequence of maps"
-  [path]
-  (with-open [in (io/reader path)]
-    (->> (csv/parse-csv in)
-         (map #(drop 1 %))
-         (sc/mappify)
-         (sc/cast-with {:profits #(try (Double/parseDouble %) (catch Throwable t nil))
-                        :assets #(Double/parseDouble %)
-                        :rank #(Long/parseLong %)
-                        :sales #(Double/parseDouble %)
-                        :marketvalue #(Double/parseDouble %)})
-         doall)))
-
-(defn x-parse-data
-  "Same as parse-data but with transducers (without intermediate seqs)"
+  "Turns csv file into vector of maps"
   [path]
   (with-open [in (io/reader path)]
     (into []
