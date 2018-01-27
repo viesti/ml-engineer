@@ -6,9 +6,12 @@
             [clojure.java.io :as io]
             [clojure-csv.core :as csv]
             [semantic-csv.core :as sc]
-            [semantic-csv.transducers :as sct]))
+            [semantic-csv.transducers :as sct]
+            [clojure.core.matrix.linear :as ml]
+            [clojure.core.matrix :as m]))
 
 (set! *print-length* nil)
+(m/set-current-implementation :vectorz)
 
 (defn parse-data
   "Turns Forbes2000.csv file into a sequence of maps"
@@ -41,6 +44,7 @@
 (def data (x-parse-data "Forbes2000.csv"))
 
 (j/start-jutsu!)
+(Thread/sleep 4000) ;; wait for jutsu to start
 
 ;; https://skillsmatter.com/skillscasts/9050-clojure-for-machine-learning
 
@@ -83,8 +87,33 @@
                       (kixi/simple-linear-regression :sales :marketvalue)
                       data))
 
-(defn y-at-x [[a b] x]
-  (+ (* x a) b))
+(defn linear-model [x y data]
+  (transduce identity
+             (kixi/simple-linear-regression x y)
+             data))
+
+(defn normal-equation [x y]
+  (let [xtx  (m/mmul (m/transpose x) x)
+        xtxi (ml/solve xtx)
+        xty  (m/mmul (m/transpose x) y)]
+    (m/mmul xtxi xty)))
+
+(defn add-bias [x]
+  (if (seqable? x)
+    (into [1] x)
+    [1 x]))
+
+(defn linear-model-matrix [x y data]
+  (let [x (map (comp add-bias x) data)
+        y (map y data)]
+    (normal-equation x y)))
+
+(defn y-at-x [[offset slope] x]
+  (+ (* x slope) offset))
+
+(defn regression-line [model]
+  (fn [x]
+    (y-at-x model x)))
 
 (def data-log-scale
   (sequence (comp (map #(update % :marketvalue log))
@@ -98,7 +127,6 @@
    :min-x (reduce min (map :sales data))
    :max-x (reduce max (map :sales data))})
 
-
 ;; Single pass
 (defn bounds-marketvalue-sales [data]
   (into {} (x/transjuxt {:min-y (comp (map :marketvalue) x/min)
@@ -107,14 +135,23 @@
                          :max-x (comp (map :sales) x/max)})
         data))
 
+(defn bounds-x-y [x y data]
+  (into {} (x/transjuxt {:min-y (comp (map y) x/min)
+                         :max-y (comp (map y) x/max)
+                         :min-x (comp (map x) x/min)
+                         :max-x (comp (map x) x/max)})
+        data))
+
 (j/graph! "marketvalue by sales log scatter with model"
           [{:y (map :marketvalue data-log-scale)
             :x (map :sales data-log-scale)
             :type "scatter"
             :mode "markers"
             :name "marketvalue"}
-           (let [{:keys [min-x max-x min-y max-y]} (bounds-marketvalue-sales data-log-scale)]
-             {:y [(y-at-x model min-x) (y-at-x model max-x)]
+           (let [model (linear-model :sales :marketvalue data-log-scale)
+                 {:keys [min-x max-x min-y max-y]} (bounds-x-y :sales :marketvalue data-log-scale)
+                 estimate (regression-line model)]
+             {:y [(estimate min-x) (estimate max-x)]
               :x [min-x max-x]
               :type "scatter"
               :mode "lines+markers"
@@ -180,8 +217,46 @@
        (map first)
        set))
 
-#_(defn normal-equation [x y]
-  (let [xtx  (i/mmult (i/trans x) x)
-        xtxi (i/solve xtx)
-        xty  (i/mmult (i/trans x) y)]
-    (i/mmult xtxi xty)))
+(j/graph! "marketvalue by sales and assets log scatter with model"
+          [{:y (map :marketvalue data-log-scale)
+            :x (map :sales data-log-scale)
+            :type "scatter"
+            :mode "markers"
+            :name "marketvalue by sales"}
+           {:y (map :marketvalue data-log-scale)
+            :x (map :assets data-log-scale)
+            :type "scatter"
+            :mode "markers"
+            :name "marketvalue by assets"}
+           (let [model (linear-model-matrix :sales :marketvalue data-log-scale)
+                 {:keys [min-x max-x min-y max-y]} (bounds-x-y :sales :marketvalue data-log-scale)]
+             {:y [(y-at-x model min-x) (y-at-x model max-x)]
+              :x [min-x max-x]
+              :type "scatter"
+              :mode "lines+markers"
+              :name "sales model"})
+           (let [model (linear-model-matrix :assets :marketvalue data-log-scale)
+                 {:keys [min-x max-x min-y max-y]} (bounds-x-y :assets :marketvalue data-log-scale)]
+             {:y [(y-at-x model min-x) (y-at-x model max-x)]
+              :x [min-x max-x]
+              :type "scatter"
+              :mode "lines+markers"
+              :name "assets model"})])
+
+(defn make-residual [model]
+  (let [estimate (regression-line model)]
+    (fn [x y] (- y (estimate x)))))
+
+(j/graph! "residuals"
+          (let [residual (make-residual (linear-model :sales :marketvalue data-log-scale))]
+            [{:y (map #(residual (:sales %) (:marketvalue %)) data-log-scale)
+              :x (map :sales data-log-scale)
+              :type "scatter"
+              :mode "markers"
+              :name "residuals"}]))
+
+(defn r-squared [model x y data]
+  (let [residual (make-residual model)
+        r-var (transduce (map #(residual (x %) (y %))) kixi/variance data)
+        y-var (transduce (map y) kixi/variance data)]
+    (- 1 (/ r-var y-var))))

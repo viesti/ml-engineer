@@ -6,4 +6,5 @@
                  [kixi/stats "0.4.0"]
                  [redux "0.1.4"]
                  [net.cgrand/xforms "0.16.0"]
-                 [net.mikera/core.matrix "0.61.0"]])
+                 [net.mikera/core.matrix "0.61.0"]
+                 [net.mikera/vectorz-clj "0.47.0"]])
