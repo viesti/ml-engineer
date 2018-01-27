@@ -73,7 +73,10 @@
              (kixi/simple-linear-regression x y)
              data))
 
-(defn normal-equation [x y]
+(defn normal-equation
+  "core.matrix version of normal-equation from \"Clojure for Data Science\" book:
+https://github.com/clojuredatascience/ch3-correlation/blob/master/src/cljds/ch3/stats.clj#L89-L93"
+  [x y]
   (let [xtx  (m/mmul (m/transpose x) x)
         xtxi (ml/solve xtx)
         xty  (m/mmul (m/transpose x) y)]
@@ -85,6 +88,7 @@
     [1 x]))
 
 (defn linear-model-matrix [x y data]
+  "Linear model using normal equation, copes with more than one independent variable"
   (let [x (map (comp add-bias x) data)
         y (map y data)]
     (normal-equation x y)))
@@ -102,21 +106,9 @@
                   (map #(update % :assets log)))
             data))
 
-(defn bounds [data]
-  {:min-y (reduce min (map :marketvalue data))
-   :max-y (reduce max (map :marketvalue data))
-   :min-x (reduce min (map :sales data))
-   :max-x (reduce max (map :sales data))})
-
-;; Single pass
-(defn bounds-marketvalue-sales [data]
-  (into {} (x/transjuxt {:min-y (comp (map :marketvalue) x/min)
-                         :max-y (comp (map :marketvalue) x/max)
-                         :min-x (comp (map :sales) x/min)
-                         :max-x (comp (map :sales) x/max)})
-        data))
-
-(defn bounds-x-y [x y data]
+(defn bounds
+  "Returns map with :min-x, :max-x, min-y and max-y of given x and y fns"
+  [x y data]
   (into {} (x/transjuxt {:min-y (comp (map y) x/min)
                          :max-y (comp (map y) x/max)
                          :min-x (comp (map x) x/min)
@@ -130,7 +122,7 @@
             :mode "markers"
             :name "marketvalue"}
            (let [model (linear-model :sales :marketvalue data-log-scale)
-                 {:keys [min-x max-x min-y max-y]} (bounds-x-y :sales :marketvalue data-log-scale)
+                 {:keys [min-x max-x min-y max-y]} (bounds :sales :marketvalue data-log-scale)
                  estimate (regression-line model)]
              {:y [(estimate min-x) (estimate max-x)]
               :x [min-x max-x]
@@ -180,7 +172,7 @@
                   category-model (transduce identity
                                             (kixi/simple-linear-regression :sales :marketvalue)
                                             category-data)
-                  {:keys [min-x max-x min-y max-y]} (bounds-marketvalue-sales category-data)]
+                  {:keys [min-x max-x min-y max-y]} (bounds :sales :marketvalue category-data)]
               [{:y (map :marketvalue category-data)
                 :x (map :sales category-data)
                 :type "scatter"
@@ -210,14 +202,14 @@
             :mode "markers"
             :name "marketvalue by assets"}
            (let [model (linear-model-matrix :sales :marketvalue data-log-scale)
-                 {:keys [min-x max-x min-y max-y]} (bounds-x-y :sales :marketvalue data-log-scale)]
+                 {:keys [min-x max-x min-y max-y]} (bounds :sales :marketvalue data-log-scale)]
              {:y [(y-at-x model min-x) (y-at-x model max-x)]
               :x [min-x max-x]
               :type "scatter"
               :mode "lines+markers"
               :name "sales model"})
            (let [model (linear-model-matrix :assets :marketvalue data-log-scale)
-                 {:keys [min-x max-x min-y max-y]} (bounds-x-y :assets :marketvalue data-log-scale)]
+                 {:keys [min-x max-x min-y max-y]} (bounds :assets :marketvalue data-log-scale)]
              {:y [(y-at-x model min-x) (y-at-x model max-x)]
               :x [min-x max-x]
               :type "scatter"
@@ -236,7 +228,9 @@
               :mode "markers"
               :name "residuals"}]))
 
-(defn r-squared [model x y data]
+(defn r-squared
+  "kixi.stats version of https://github.com/clojuredatascience/ch3-correlation/blob/master/src/cljds/ch3/stats.clj#L75-L79"
+  [model x y data]
   (let [residual (make-residual model)
         r-var (transduce (map #(residual (x %) (y %))) kixi/variance data)
         y-var (transduce (map y) kixi/variance data)]
