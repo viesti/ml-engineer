@@ -87,14 +87,13 @@ https://github.com/clojuredatascience/ch3-correlation/blob/master/src/cljds/ch3/
     (into [1] x)
     [1 x]))
 
-(defn linear-model-matrix [x y data & {:keys [bias?] :or {bias? true}}]
+(defn linear-model-matrix
   "Linear model using normal equation, copes with more than one independent variable"
+  [x y data & {:keys [bias?] :or {bias? true}}]
   (let [mf (if bias? (comp add-bias x) x)
         x (map mf data)
         y (map y data)]
     (normal-equation x y)))
-
-
 
 (defn y-at-x [[offset slope] x]
   (+ (* x slope) offset))
