@@ -239,3 +239,20 @@ https://github.com/clojuredatascience/ch3-correlation/blob/master/src/cljds/ch3/
               :type "scatter"
               :mode "lines+markers"
               :name "assets model"})])
+
+(j/graph! "quadratic_data_plot"
+          (let [Y #(+ (* 0.5 (* % %)) % 2 (rand))
+                X (repeatedly 100 #(- (* 6 (rand)) 3))
+                data (map #(do {:x % :y (Y %)}) X)]
+            [{:x (map :x data)
+              :y (map :y data)
+              :type "scatter"
+              :mode "markers"
+              :name "data"}
+             (let [X (range -3 3 0.1)]
+               {:x X
+                :y (let [[offset b1 b2 :as model] (linear-model-matrix #(do [(:x %) (* (:x %) (:x %))]) :y data :bias? true)]
+                     (map #(+ offset (* b1 %) (* b2 (* % %))) X))
+                :type "scatter"
+                :mode "lines"
+                :name "model"})]))
