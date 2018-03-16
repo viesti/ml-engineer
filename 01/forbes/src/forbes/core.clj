@@ -27,7 +27,7 @@
                                 :marketvalue #(Double/parseDouble %)}))
           (csv/parse-csv in))))
 
-(def data (x-parse-data "Forbes2000.csv"))
+(def data (parse-data "Forbes2000.csv"))
 
 (j/start-jutsu!)
 (Thread/sleep 4000) ;; wait for jutsu to start
