@@ -103,10 +103,12 @@ https://github.com/clojuredatascience/ch3-correlation/blob/master/src/cljds/ch3/
     (y-at-x model x)))
 
 (def data-log-scale
-  (sequence (comp (map #(update % :marketvalue log))
-                  (map #(update % :sales log))
-                  (map #(update % :assets log)))
-            data))
+  (into [] (comp (filter #(-> % :profits nil? not))
+                 (map #(update % :marketvalue log))
+                 (map #(update % :sales log))
+                 (map #(update % :assets log))
+                 (map #(update % :profits log)))
+        data))
 
 (defn bounds
   "Returns map with :min-x, :max-x, min-y and max-y of given x and y fns"
